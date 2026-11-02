@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Post Notice</title>
+  <style>
+    * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body {
+      background: #eef2f7; display: flex; justify-content: center;
+      align-items: center; min-height: 100vh; margin: 0; padding: 20px;
+    }
+    .card {
+      background: #ffffff; padding: 35px 30px; border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08); width: 100%; max-width: 600px;
+    }
+    h2 { margin-top: 0; color: #333; }
+    .form-group { margin-bottom: 18px; }
+    label { display: block; margin-bottom: 6px; font-weight: 600; color: #444; font-size: 14px; }
+    input[type="text"], select, textarea, input[type="file"] {
+      width: 100%; padding: 10px 12px; border: 1px solid #ccc;
+      border-radius: 6px; font-size: 14px;
+    }
+    textarea { height: 120px; resize: vertical; }
+    button {
+      width: 100%; padding: 12px; background-color: #667eea;
+      color: #ffffff; border: none; border-radius: 6px;
+      font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px;
+    }
+    button:hover { background-color: #5a67d8; }
+    .back-link { display: inline-block; margin-top: 15px; color: #667eea; text-decoration: none; font-weight: bold; font-size: 14px; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h2>Post to General & Personal Notice Board</h2>
+    <form id="post-form">
+      <div class="form-group">
+        <label for="title">Notice Title *</label>
+        <input type="text" id="title" placeholder="e.g. Seeking Video Editor for Project" required>
+      </div>
+
+      <div class="form-group">
+        <label for="contentType">Content Type *</label>
+        <select id="contentType" required>
+          <option value="Text / Quick Note">Text / Quick Note</option>
+          <option value="Article">Article</option>
+          <option value="Announcement">Announcement</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="body">Content Body *</label>
+        <textarea id="body" placeholder="Write your announcement or notice details here..." required></textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="attachment">Attachment (Image or PDF) - Optional</label>
+        <input type="file" id="attachment" accept="image/*, application/pdf">
+      </div>
+
+      <button type="submit" id="submit-btn">Publish Post</button>
+    </form>
+
+    <a href="feed.html" class="back-link">← Back to Notice Board</a>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const storage = getStorage(app);
+
+    let currentUser = null;
+    let industryName = "Anonymous Creator";
+
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        currentUser = user;
+        const userDoc = await getDoc(doc(db, "creators", user.uid));
+        if (userDoc.exists() && userDoc.data().industryName) {
+          industryName = userDoc.data().industryName;
+        }
+      } else {
+        window.location.href = "login.html";
+      }
+    });
+
+    document.getElementById('post-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('submit-btn');
+      btn.innerText = "Publishing...";
+      btn.disabled = true;
+
+      const title = document.getElementById('title').value;
+      const contentType = document.getElementById('contentType').value;
+      const body = document.getElementById('body').value;
+      const file = document.getElementById('attachment').files[0];
+
+      try {
+        let fileUrl = "";
+        let fileType = "";
+
+        if (file) {
+          const isPdf = file.type === "application/pdf";
+          fileType = isPdf ? "pdf" : "image";
+          const fileRef = ref(storage, `notice_board/${currentUser.uid}/${Date.now()}_${file.name}`);
+          await uploadBytes(fileRef, file);
+          fileUrl = await getDownloadURL(fileRef);
+        }
+
+        await addDoc(collection(db, "notice_board"), {
+          authorId: currentUser.uid,
+          industryName: industryName,
+          title: title,
+          contentType: contentType,
+          body: body,
+          fileUrl: fileUrl,
+          fileType: fileType,
+          views: 0,
+          createdAt: new Date().toISOString()
+        });
+
+        alert("Posted successfully!");
+        window.location.href = "my-posts.html";
+      } catch (error) {
+        alert("Error publishing post: " + error.message);
+      } finally {
+        btn.innerText = "Publish Post";
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

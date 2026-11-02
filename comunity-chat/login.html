@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Global Community - Login</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Helvetica, Arial, sans-serif; }
+    body { background-color: #d1d7db; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+
+    .login-card {
+      background: #ffffff;
+      width: 100%;
+      max-width: 400px;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    }
+
+    .header { text-align: center; margin-bottom: 24px; }
+    .header h1 { font-size: 24px; color: #045d4d; font-weight: 700; }
+    .header p { font-size: 13px; color: #64748b; margin-top: 4px; }
+
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px; text-transform: uppercase; }
+    .form-group input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+    }
+    .form-group input:focus { border-color: #045d4d; }
+
+    .btn-submit {
+      width: 100%;
+      background: #045d4d;
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    .btn-submit:hover { background: #03483c; }
+
+    .footer-link { text-align: center; margin-top: 18px; font-size: 13px; color: #64748b; }
+    .footer-link a { color: #045d4d; text-decoration: none; font-weight: 700; }
+  </style>
+</head>
+<body>
+
+  <div class="login-card">
+    <div class="header">
+      <h1>Welcome Back</h1>
+      <p>Log in to access community rooms</p>
+    </div>
+
+    <form id="loginForm">
+      <div class="form-group">
+        <label for="nativeName">Username / Handle</label>
+        <input type="text" id="nativeName" placeholder="e.g. johndoe" required>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" placeholder="••••••••" required>
+      </div>
+
+      <button type="submit" class="btn-submit" id="submitBtn">Log In</button>
+    </form>
+
+    <div class="footer-link">
+      Don't have an account? <a href="register.html">Register</a>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const submitBtn = document.getElementById('submitBtn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Verifying...';
+
+      const nativeName = document.getElementById('nativeName').value.trim().toLowerCase();
+      const password = document.getElementById('password').value;
+
+      try {
+        const userRef = ref(db, `users/${nativeName}`);
+        const snapshot = await get(userRef);
+
+        if (!snapshot.exists()) {
+          alert('User account not found. Please register.');
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Log In';
+          return;
+        }
+
+        const userData = snapshot.val();
+        if (userData.password !== password) {
+          alert('Incorrect password. Please check your credentials.');
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Log In';
+          return;
+        }
+
+        if (userData.status === 'pending') {
+          alert('Your registration application is still pending admin approval.');
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Log In';
+          return;
+        }
+
+        if (userData.status === 'rejected') {
+          alert('Your application was rejected by community administration.');
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Log In';
+          return;
+        }
+
+        sessionStorage.setItem('loggedInUser', JSON.stringify(userData));
+
+        if (userData.role === 'admin') {
+          window.location.href = 'admin.html';
+        } else {
+          window.location.href = 'chat.html';
+        }
+
+      } catch (err) {
+        alert('Login failed: ' + err.message);
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Log In';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Creator Profile Dashboard</title>
+  <style>
+    * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body {
+      background: linear-gradient(135deg, #a8c0ff 0%, #3f2b96 100%);
+      display: flex; justify-content: center; align-items: center;
+      min-height: 100vh; margin: 0; padding: 20px;
+    }
+    .card {
+      background: #ffffff; padding: 35px 30px; border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2); width: 100%; max-width: 520px;
+    }
+    h2 { margin-top: 0; color: #333; text-align: center; }
+    
+    .dashboard-nav {
+      display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;
+    }
+    .nav-btn {
+      flex: 1; text-align: center; padding: 10px; background: #f1f5f9;
+      color: #3f2b96; border-radius: 6px; text-decoration: none;
+      font-weight: bold; font-size: 13px; border: 1px solid #cbd5e1;
+    }
+    .nav-btn:hover { background: #e2e8f0; }
+    .nav-btn.primary { background: #3f2b96; color: #fff; border: none; }
+    .nav-btn.primary:hover { background: #2e1e75; }
+
+    .profile-card {
+      background: #f8f9fa; border: 1px solid #e9ecef;
+      padding: 20px; border-radius: 8px; margin-bottom: 25px; text-align: center;
+    }
+    .passport-img {
+      width: 110px; height: 110px; border-radius: 50%;
+      object-fit: cover; border: 3px solid #3f2b96;
+      margin-bottom: 12px; background: #e0e0e0;
+    }
+    .info-row { text-align: left; margin-bottom: 8px; font-size: 14px; color: #444; }
+    .info-row strong { color: #111; }
+
+    .form-group { margin-bottom: 16px; }
+    label { display: block; margin-bottom: 6px; font-weight: 600; color: #444; font-size: 14px; }
+    input[type="text"], input[type="file"] {
+      width: 100%; padding: 10px; border: 1px solid #ccc;
+      border-radius: 6px; font-size: 14px;
+    }
+    button {
+      width: 100%; padding: 12px; background-color: #3f2b96;
+      color: #ffffff; border: none; border-radius: 6px;
+      font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 8px;
+    }
+    button:hover { background-color: #2e1e75; }
+    .logout-btn {
+      background-color: transparent; color: #d9534f;
+      border: 1px solid #d9534f; margin-top: 15px;
+    }
+    .logout-btn:hover { background-color: #d9534f; color: white; }
+    hr { border: 0; height: 1px; background: #ddd; margin: 25px 0; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h2>Creator Dashboard</h2>
+
+    <div class="dashboard-nav">
+      <a href="my-posts.html" class="nav-btn primary">📌 My Personal Notice Board</a>
+      <a href="feed.html" class="nav-btn">🌐 General Notice Board</a>
+    </div>
+
+    <div class="profile-card">
+      <img id="display-passport" class="passport-img" src="https://via.placeholder.com/110?text=No+Photo" alt="Passport Photo">
+      <div class="info-row"><strong>Industry Name:</strong> <span id="display-industry">Loading...</span></div>
+      <div class="info-row"><strong>Email:</strong> <span id="display-email">Loading...</span></div>
+      <div class="info-row"><strong>Phone:</strong> <span id="display-phone">Loading...</span></div>
+      <div class="info-row"><strong>Content Type:</strong> <span id="display-content">Not provided</span></div>
+      <div class="info-row"><strong>Town / Village:</strong> <span id="display-location">Not provided</span></div>
+    </div>
+
+    <hr>
+
+    <h3>Update Details</h3>
+    <form id="profile-form">
+      <div class="form-group">
+        <label for="passport">Upload / Change Passport Photo</label>
+        <input type="file" id="passport" accept="image/*">
+      </div>
+      <div class="form-group">
+        <label for="contentType">Type of Content</label>
+        <input type="text" id="contentType" placeholder="e.g. Comedy, Tech Reviews, Music">
+      </div>
+      <div class="form-group">
+        <label for="location">Town or Village</label>
+        <input type="text" id="location" placeholder="e.g. Abuja">
+      </div>
+      <button type="submit" id="submit-btn">Save Profile Details</button>
+    </form>
+
+    <button id="logout-btn" class="logout-btn">Logout</button>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const storage = getStorage(app);
+
+    let currentUser = null;
+
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        currentUser = user;
+        document.getElementById('display-email').innerText = user.email;
+
+        const docRef = doc(db, "creators", user.uid);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          document.getElementById('display-industry').innerText = data.industryName || 'N/A';
+          document.getElementById('display-phone').innerText = data.phone || 'N/A';
+          document.getElementById('display-content').innerText = data.contentType || 'Not provided';
+          document.getElementById('display-location').innerText = data.location || 'Not provided';
+          
+          if (data.passportUrl) {
+            document.getElementById('display-passport').src = data.passportUrl;
+          }
+        }
+      } else {
+        window.location.href = "login.html";
+      }
+    });
+
+    document.getElementById('profile-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('submit-btn');
+      btn.innerText = "Saving Changes...";
+      btn.disabled = true;
+
+      const file = document.getElementById('passport').files[0];
+      const contentType = document.getElementById('contentType').value;
+      const location = document.getElementById('location').value;
+
+      try {
+        let updateData = {};
+        if (contentType) updateData.contentType = contentType;
+        if (location) updateData.location = location;
+
+        if (file) {
+          const fileRef = ref(storage, `passports/${currentUser.uid}/${file.name}`);
+          await uploadBytes(fileRef, file);
+          const passportUrl = await getDownloadURL(fileRef);
+          updateData.passportUrl = passportUrl;
+          document.getElementById('display-passport').src = passportUrl;
+        }
+
+        if (Object.keys(updateData).length > 0) {
+          await updateDoc(doc(db, "creators", currentUser.uid), updateData);
+          alert("Profile updated successfully!");
+          window.location.reload();
+        } else {
+          alert("No changes made.");
+        }
+      } catch (error) {
+        alert("Error updating profile: " + error.message);
+      } finally {
+        btn.innerText = "Save Profile Details";
+        btn.disabled = false;
+      }
+    });
+
+    document.getElementById('logout-btn').addEventListener('click', () => {
+      signOut(auth).then(() => {
+        window.location.href = "login.html";
+      });
+    });
+  </script>
+</body>
+</html>

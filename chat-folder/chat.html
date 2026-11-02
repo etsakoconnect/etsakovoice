@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Community Portal & Chat</title>
+  <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+  <style>
+    :root {
+      --primary: #075e54;
+      --secondary: #128c7e;
+      --chat-bg: #efeae2;
+      --my-msg: #d9fdd3;
+      --sidebar-bg: #ffffff;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #d1d5db;
+    }
+    .app-container {
+      max-width: 1100px;
+      margin: 20px auto;
+      height: 90vh;
+      background: white;
+      display: flex;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    }
+
+    .sidebar {
+      width: 330px;
+      border-right: 1px solid #cbd5e1;
+      display: flex;
+      flex-direction: column;
+      background: var(--sidebar-bg);
+    }
+    .sidebar-header {
+      background: var(--primary);
+      color: white;
+      padding: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .sidebar-header h4 { margin: 0; }
+    .search-box {
+      padding: 10px;
+      background: #f0f2f5;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .search-box input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid #cbd5e1;
+      border-radius: 20px;
+      outline: none;
+      box-sizing: border-box;
+      font-size: 14px;
+    }
+    .chat-list {
+      flex: 1;
+      overflow-y: auto;
+    }
+    .section-title {
+      padding: 8px 15px;
+      font-size: 11px;
+      font-weight: bold;
+      color: #64748b;
+      background: #f8fafc;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .user-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 15px;
+      border-bottom: 1px solid #f1f5f9;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .user-item:hover, .user-item.active { background: #f0fdf4; }
+    .user-avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+    .user-info { flex: 1; }
+    .user-info .name { font-weight: bold; color: #1e293b; font-size: 14px; }
+    .user-info .community { font-size: 12px; color: #64748b; }
+
+    .chat-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--chat-bg);
+    }
+    .chat-header {
+      background: var(--primary);
+      color: white;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .chat-header h3 { margin: 0; font-size: 18px; }
+    .chat-header .actions button {
+      background: var(--secondary);
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      margin-left: 5px;
+    }
+    .chat-box {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .msg-bubble {
+      max-width: 65%;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 14px;
+      position: relative;
+      word-wrap: break-word;
+    }
+    .msg-bubble.mine { align-self: flex-end; background: var(--my-msg); }
+    .msg-bubble.others { align-self: flex-start; background: white; }
+    .msg-sender { font-weight: bold; font-size: 12px; color: var(--secondary); margin-bottom: 4px; }
+
+    .chat-input-bar {
+      padding: 12px;
+      background: #f0f2f5;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .chat-input-bar input[type="text"] {
+      flex: 1;
+      padding: 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 20px;
+      outline: none;
+    }
+    .chat-input-bar button {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .btn-record { background: #dc2626 !important; }
+
+    #callModal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.85);
+      z-index: 100;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .video-grid { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; justify-content: center; }
+    video { width: 320px; height: 240px; background: black; border-radius: 8px; object-fit: cover; }
+    .call-controls button { padding: 12px 24px; border: none; border-radius: 30px; font-size: 16px; cursor: pointer; font-weight: bold; margin: 0 5px; }
+    .btn-end { background: #dc2626; color: white; }
+    .no-results { padding: 15px; text-align: center; color: #64748b; font-size: 14px; }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <h4>Community Portal</h4>
+        <button onclick="window.location.href='profile.html'" style="background:var(--secondary); color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">Profile</button>
+      </div>
+
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="🔍 Search member by name...">
+      </div>
+
+      <div class="chat-list" id="chatList">
+        <div class="section-title">Group Rooms</div>
+        
+        <div class="user-item active" id="generalChatItem">
+          <div class="user-avatar">🌐</div>
+          <div class="user-info">
+            <div class="name">General Group Chat</div>
+            <div class="community">All Communities</div>
+          </div>
+        </div>
+
+        <div class="user-item" id="communityChatItem">
+          <div class="user-avatar">🏡</div>
+          <div class="user-info">
+            <div class="name" id="myCommunityName">My Community Chat</div>
+            <div class="community">Village Group</div>
+          </div>
+        </div>
+
+        <div class="section-title">Direct Messages</div>
+        <div id="usersContainer"></div>
+      </div>
+    </div>
+
+    <div class="chat-area">
+      <div class="chat-header">
+        <div>
+          <h3 id="activeChatTitle">General Group Chat</h3>
+          <small id="activeChatSubtitle">All Communities Room</small>
+        </div>
+        <div class="actions">
+          <button id="startAudioCallBtn">📞 Audio</button>
+          <button id="startVideoCallBtn">📹 Video</button>
+        </div>
+      </div>
+
+      <div class="chat-box" id="chatBox"></div>
+
+      <div class="chat-input-bar">
+        <input type="text" id="msgInput" placeholder="Type a message...">
+        <button id="sendBtn">Send</button>
+        <button id="recordBtn" class="btn-record">🎙️ Hold to Record</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="callModal">
+    <div class="video-grid">
+      <div>
+        <p style="color:white; text-align:center;">Local Stream</p>
+        <video id="localVideo" autoplay muted playsinline></video>
+      </div>
+      <div>
+        <p style="color:white; text-align:center;">Remote Stream</p>
+        <video id="remoteVideo" autoplay playsinline></video>
+      </div>
+    </div>
+    <div class="call-controls">
+      <button id="endCallBtn" class="btn-end">End Call</button>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, push, onValue, set } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_KEY"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const database = getDatabase(app);
+    const auth = getAuth(app);
+
+    let currentUser = null;
+    let userProfile = null;
+    let allMembers = {};
+    let activeChatType = "general";
+    let activeDmRecipientUid = null;
+    let activeChatPath = "";
+
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let localStream = null;
+    let peerConnection = null;
+    const rtcServers = {
+      iceServers: [
+        { urls: "stun:stun.l.google.com:19302" },
+        { urls: "stun:stun1.l.google.com:19302" }
+      ]
+    };
+
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        window.location.href = "login.html";
+        return;
+      }
+
+      currentUser = user;
+      const userRef = ref(database, `members/${user.uid}`);
+
+      onValue(userRef, (snapshot) => {
+        userProfile = snapshot.val();
+
+        if (!userProfile || userProfile.status !== "approved") {
+          alert("Access Denied: You must be an approved member to access chat.");
+          window.location.href = "profile.html";
+          return;
+        }
+
+        document.getElementById("myCommunityName").innerText = `${userProfile.village} Chat`;
+        loadGeneralGroupChat();
+        fetchAllMembers();
+      });
+    });
+
+    function fetchAllMembers() {
+      const membersRef = ref(database, 'members');
+      onValue(membersRef, (snapshot) => {
+        allMembers = snapshot.val() || {};
+        renderUsersList("");
+      });
+    }
+
+    const searchInput = document.getElementById("searchInput");
+    searchInput.addEventListener("input", (e) => {
+      renderUsersList(e.target.value.toLowerCase().trim());
+    });
+
+    function renderUsersList(searchQuery) {
+      const usersContainer = document.getElementById("usersContainer");
+      usersContainer.innerHTML = "";
+
+      let matchesFound = 0;
+
+      Object.values(allMembers).forEach(member => {
+        if (member.uid === currentUser.uid || member.status !== "approved") return;
+
+        const memberName = member.fullName ? member.fullName.toLowerCase() : "";
+        
+        if (memberName.includes(searchQuery)) {
+          matchesFound++;
+          const item = document.createElement("div");
+          item.className = `user-item ${activeDmRecipientUid === member.uid ? 'active' : ''}`;
+          item.innerHTML = `
+            <img src="${member.passport || 'https://via.placeholder.com/42'}" class="user-avatar" style="width:42px; height:42px;" alt="">
+            <div class="user-info">
+              <div class="name">${member.fullName}</div>
+              <div class="community">📍 ${member.village}</div>
+            </div>
+          `;
+
+          item.addEventListener("click", () => startDirectMessage(member));
+          usersContainer.appendChild(item);
+        }
+      });
+
+      if (matchesFound === 0 && searchQuery !== "") {
+        usersContainer.innerHTML = `<div class="no-results">No registered member found matching "${searchQuery}"</div>`;
+      }
+    }
+
+    document.getElementById("generalChatItem").addEventListener("click", loadGeneralGroupChat);
+    document.getElementById("communityChatItem").addEventListener("click", loadCommunityGroupChat);
+
+    function loadGeneralGroupChat() {
+      activeChatType = "general";
+      activeDmRecipientUid = null;
+      activeChatPath = "chats/general_all_communities";
+
+      document.getElementById("activeChatTitle").innerText = "General Group Chat";
+      document.getElementById("activeChatSubtitle").innerText = "All Communities Room";
+      
+      updateActiveSidebarItem("generalChatItem");
+      listenToChatMessages();
+      listenForCalls(activeChatPath);
+    }
+
+    function loadCommunityGroupChat() {
+      activeChatType = "community";
+      activeDmRecipientUid = null;
+      activeChatPath = `chats/group_${userProfile.village}`;
+
+      document.getElementById("activeChatTitle").innerText = `${userProfile.village} Chat`;
+      document.getElementById("activeChatSubtitle").innerText = `${userProfile.village} Community Group`;
+
+      updateActiveSidebarItem("communityChatItem");
+      listenToChatMessages();
+      listenForCalls(activeChatPath);
+    }
+
+    function startDirectMessage(targetMember) {
+      activeChatType = "dm";
+      activeDmRecipientUid = targetMember.uid;
+
+      const dmId = [currentUser.uid, targetMember.uid].sort().join("_");
+      activeChatPath = `chats/dm_${dmId}`;
+
+      document.getElementById("activeChatTitle").innerText = targetMember.fullName;
+      document.getElementById("activeChatSubtitle").innerText = `Direct Message • ${targetMember.village}`;
+
+      updateActiveSidebarItem(null);
+      renderUsersList(searchInput.value.toLowerCase().trim());
+      listenToChatMessages();
+      listenForCalls(activeChatPath);
+    }
+
+    function updateActiveSidebarItem(activeId) {
+      document.getElementById("generalChatItem").classList.remove("active");
+      document.getElementById("communityChatItem").classList.remove("active");
+      if (activeId) {
+        document.getElementById(activeId).classList.add("active");
+      }
+    }
+
+    function listenToChatMessages() {
+      const chatRef = ref(database, activeChatPath);
+      const chatBox = document.getElementById("chatBox");
+
+      onValue(chatRef, (snapshot) => {
+        chatBox.innerHTML = "";
+        const data = snapshot.val();
+        if (data) {
+          Object.values(data).forEach(msg => {
+            const isMine = msg.senderUid === currentUser.uid;
+            const bubble = document.createElement("div");
+            bubble.className = `msg-bubble ${isMine ? 'mine' : 'others'}`;
+
+            let contentHTML = `<div class="msg-sender">${msg.senderName} (${msg.senderVillage || 'Member'})</div>`;
+
+            if (msg.type === "text") {
+              contentHTML += `<div>${msg.text}</div>`;
+            } else if (msg.type === "audio") {
+              contentHTML += `<audio controls src="${msg.audioUrl}"></audio>`;
+            }
+
+            bubble.innerHTML = contentHTML;
+            chatBox.appendChild(bubble);
+          });
+          chatBox.scrollTop = chatBox.scrollHeight;
+        }
+      });
+    }
+
+    const sendBtn = document.getElementById("sendBtn");
+    const msgInput = document.getElementById("msgInput");
+
+    sendBtn.addEventListener("click", () => {
+      const text = msgInput.value.trim();
+      if (!text) return;
+
+      push(ref(database, activeChatPath), {
+        senderUid: currentUser.uid,
+        senderName: userProfile.fullName,
+        senderVillage: userProfile.village,
+        type: "text",
+        text: text,
+        timestamp: Date.now()
+      });
+
+      msgInput.value = "";
+    });
+
+    const recordBtn = document.getElementById("recordBtn");
+
+    recordBtn.addEventListener("mousedown", async () => {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+
+        mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
+        mediaRecorder.onstop = async () => {
+          const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+          const reader = new FileReader();
+          reader.readAsDataURL(audioBlob);
+          reader.onloadend = () => {
+            push(ref(database, activeChatPath), {
+              senderUid: currentUser.uid,
+              senderName: userProfile.fullName,
+              senderVillage: userProfile.village,
+              type: "audio",
+              audioUrl: reader.result,
+              timestamp: Date.now()
+            });
+          };
+        };
+
+        mediaRecorder.start();
+        recordBtn.innerText = "🔴 Recording... Release to Send";
+      }
+    });
+
+    recordBtn.addEventListener("mouseup", () => {
+      if (mediaRecorder && mediaRecorder.state !== "inactive") {
+        mediaRecorder.stop();
+        recordBtn.innerText = "🎙️ Hold to Record";
+      }
+    });
+
+    const startVideoCallBtn = document.getElementById("startVideoCallBtn");
+    const startAudioCallBtn = document.getElementById("startAudioCallBtn");
+    const callModal = document.getElementById("callModal");
+    const endCallBtn = document.getElementById("endCallBtn");
+
+    startVideoCallBtn.addEventListener("click", () => startCall(true));
+    startAudioCallBtn.addEventListener("click", () => startCall(false));
+
+    async function startCall(videoEnabled) {
+      callModal.style.display = "flex";
+      localStream = await navigator.mediaDevices.getUserMedia({ video: videoEnabled, audio: true });
+      document.getElementById("localVideo").srcObject = localStream;
+
+      peerConnection = new RTCPeerConnection(rtcServers);
+      localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+      peerConnection.ontrack = (event) => {
+        document.getElementById("remoteVideo").srcObject = event.streams[0];
+      };
+
+      const callRef = ref(database, `calls/${activeChatPath.replace('chats/', '')}`);
+      
+      peerConnection.onicecandidate = (event) => {
+        if (event.candidate) {
+          push(ref(database, `calls/${activeChatPath.replace('chats/', '')}/candidates`), event.candidate.toJSON());
+        }
+      };
+
+      const offer = await peerConnection.createOffer();
+      await peerConnection.setLocalDescription(offer);
+
+      set(callRef, { offer: { type: offer.type, sdp: offer.sdp }, caller: userProfile.fullName });
+    }
+
+    function listenForCalls(chatPath) {
+      const callPath = `calls/${chatPath.replace('chats/', '')}`;
+      const callRef = ref(database, callPath);
+
+      onValue(callRef, async (snapshot) => {
+        const callData = snapshot.val();
+        if (callData && callData.offer && !peerConnection) {
+          if (confirm(`Incoming Call from ${callData.caller}. Do you want to answer?`)) {
+            callModal.style.display = "flex";
+            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            document.getElementById("localVideo").srcObject = localStream;
+
+            peerConnection = new RTCPeerConnection(rtcServers);
+            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+            peerConnection.ontrack = (event) => {
+              document.getElementById("remoteVideo").srcObject = event.streams[0];
+            };
+
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(callData.offer));
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+
+            set(ref(database, `${callPath}/answer`), { type: answer.type, sdp: answer.sdp });
+          }
+        } else if (callData && callData.answer && peerConnection && !peerConnection.remoteDescription) {
+          await peerConnection.setRemoteDescription(new RTCSessionDescription(callData.answer));
+        }
+      });
+    }
+
+    endCallBtn.addEventListener("click", () => {
+      if (peerConnection) peerConnection.close();
+      if (localStream) localStream.getTracks().forEach(track => track.stop());
+      peerConnection = null;
+      localStream = null;
+      callModal.style.display = "none";
+    });
+  </script>
+</body>
+</html>

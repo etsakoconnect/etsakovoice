@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Etsako Parables Notice Board</title>
+    <style>
+        .etsako-root-reset {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        .etsako-body-layout {
+            background-color: #f4f6f8;
+            padding: 40px;
+            color: #333;
+        }
+
+        .etsako-main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header Section */
+        .etsako-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .etsako-title-heading {
+            font-size: 24px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #1a1a1a;
+        }
+
+        .etsako-submit-btn {
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            animation: etsako-blink-anim 20s infinite;
+        }
+
+        /* Blinking Keyframe Animation every 20 seconds */
+        @keyframes etsako-blink-anim {
+            0%, 95%, 100% {
+                opacity: 1;
+            }
+            97.5% {
+                opacity: 0;
+            }
+        }
+
+        /* Two-Column Layout Grid */
+        .etsako-grid-wrapper {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+        }
+
+        @media (max-width: 900px) {
+            .etsako-grid-wrapper {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .etsako-section-column {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Column Tag */
+        .etsako-column-badge {
+            display: inline-block;
+            background-color: #27ae60;
+            color: white;
+            padding: 8px 24px;
+            font-weight: 700;
+            font-size: 15px;
+            border-top-left-radius: 6px;
+            border-top-right-radius: 6px;
+            align-self: flex-start;
+        }
+
+        /* Table Card Container */
+        .etsako-card-wrapper {
+            background-color: white;
+            border: 1px solid #e1e6eb;
+            border-radius: 0 8px 8px 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+        }
+
+        /* Table Styling */
+        .etsako-data-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        .etsako-data-table th, 
+        .etsako-data-table td {
+            padding: 16px 20px;
+            font-size: 14px;
+        }
+
+        .etsako-data-table th {
+            background-color: white;
+            color: #27ae60;
+            font-weight: 700;
+            border-bottom: 1px solid #e1e6eb;
+        }
+
+        .etsako-data-table th.etsako-dark-header {
+            color: #333;
+        }
+
+        .etsako-data-table tr:not(:last-child) td {
+            border-bottom: 1px solid #e1e6eb;
+        }
+
+        .etsako-serial-cell {
+            width: 60px;
+            color: #27ae60;
+            font-weight: 600;
+        }
+
+        .etsako-parable-cell {
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .etsako-meaning-cell {
+            color: #666;
+        }
+
+        /* Centered View More Section */
+        .etsako-viewmore-box {
+            text-align: center;
+            margin-top: 35px;
+        }
+
+        .etsako-viewmore-heading {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 12px;
+        }
+
+        .etsako-action-btn {
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            padding: 12px 28px;
+            font-size: 15px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .etsako-action-btn:hover {
+            background-color: #219150;
+        }
+
+        .etsako-action-btn:active {
+            transform: scale(0.98);
+        }
+    </style>
+</head>
+<body class="etsako-root-reset etsako-body-layout">
+
+    <div class="etsako-main-container">
+        <!-- Top Header -->
+        <div class="etsako-header-row">
+            <h1 class="etsako-title-heading">Etsako Parables Notice Board 🌍</h1>
+            <button class="etsako-submit-btn">+ Submit New</button>
+        </div>
+
+        <!-- Divided into Two Sections -->
+        <div class="etsako-grid-wrapper">
+            
+            <!-- Section 1 -->
+            <div class="etsako-section-column">
+                <div class="etsako-column-badge">Column A</div>
+                <div class="etsako-card-wrapper">
+                    <table class="etsako-data-table">
+                        <thead>
+                            <tr>
+                                <th class="etsako-serial-cell">S/N</th>
+                                <th class="etsako-parable-cell etsako-dark-header">Etsako Parable</th>
+                                <th class="etsako-meaning-cell etsako-dark-header">English Meaning</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="etsako-serial-cell">1</td>
+                                <td class="etsako-parable-cell">Ayu no kha mhe</td>
+                                <td class="etsako-meaning-cell">You can't stop the mouth from talking</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Section 2 -->
+            <div class="etsako-section-column">
+                <div class="etsako-column-badge">Column A</div>
+                <div class="etsako-card-wrapper">
+                    <table class="etsako-data-table">
+                        <thead>
+                            <tr>
+                                <th class="etsako-serial-cell">S/N</th>
+                                <th class="etsako-parable-cell etsako-dark-header">Etsako Parable</th>
+                                <th class="etsako-meaning-cell etsako-dark-header">English Meaning</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="etsako-serial-cell">1</td>
+                                <td class="etsako-parable-cell">Ayu no kha mhe</td>
+                                <td class="etsako-meaning-cell">You can't stop the mouth from talking</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Centered View More Parable Section with Button -->
+        <div class="etsako-viewmore-box">
+            <p class="etsako-viewmore-heading">View More Parables</p>
+            <button class="etsako-action-btn">View More</button>
+        </div>
+    </div>
+
+</body>
+</html>

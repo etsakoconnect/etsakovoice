@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Dashboard</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f8fafc; padding: 20px; }
+    .container { max-width: 1000px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+    h2 { color: #075e54; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #e2e8f0; padding: 12px; text-align: left; font-size: 14px; }
+    th { background: #f1f5f9; }
+    .btn { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; }
+    .btn-approve { background: #16a34a; color: white; }
+    .btn-reject { background: #dc2626; color: white; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h2>Admin - Member Approvals</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Community</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="memberTable"></tbody>
+    </table>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_KEY"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const database = getDatabase(app);
+
+    const membersRef = ref(database, 'members');
+    onValue(membersRef, (snapshot) => {
+      const tableBody = document.getElementById("memberTable");
+      tableBody.innerHTML = "";
+      const members = snapshot.val();
+
+      if (members) {
+        Object.values(members).forEach(member => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${member.fullName}</td>
+            <td>${member.email}</td>
+            <td>${member.village}</td>
+            <td><strong>${member.status}</strong></td>
+            <td>
+              ${member.status === 'pending' ? `
+                <button class="btn btn-approve" onclick="updateStatus('${member.uid}', 'approved')">Approve</button>
+                <button class="btn btn-reject" onclick="updateStatus('${member.uid}', 'rejected')">Reject</button>
+              ` : 'No Action Required'}
+            </td>
+          `;
+          tableBody.appendChild(tr);
+        });
+      }
+    });
+
+    window.updateStatus = function(uid, status) {
+      update(ref(database, 'members/' + uid), { status: status });
+    };
+  </script>
+</body>
+</html>

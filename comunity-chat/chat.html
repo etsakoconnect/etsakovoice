@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Global Community Portal & Chat</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Helvetica, Arial, sans-serif; }
+    body { background-color: #d1d7db; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+    
+    .app-container {
+      background: #ffffff;
+      width: 100%;
+      max-width: 950px;
+      height: 90vh;
+      border-radius: 8px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+      display: flex;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* COLLAPSIBLE SIDEBAR PANEL */
+    .sidebar {
+      width: 320px;
+      background: #ffffff;
+      border-right: 1px solid #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      transition: margin-left 0.3s ease, width 0.3s ease;
+      z-index: 10;
+    }
+
+    /* COLLAPSED STATE */
+    .sidebar.collapsed {
+      margin-left: -320px;
+    }
+
+    .sidebar-header {
+      background: #045d4d;
+      color: white;
+      padding: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .sidebar-header h2 { font-size: 18px; font-weight: 700; line-height: 1.2; }
+
+    .profile-btn {
+      background: #11816e;
+      color: white;
+      border: 1px solid #20a38d;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .search-container { padding: 12px 14px; background: #f8fafc; border-bottom: 1px solid #edf2f7; }
+
+    .search-box {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 20px;
+      padding: 8px 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .search-box input { border: none; outline: none; width: 100%; font-size: 13px; color: #334155; }
+
+    .sidebar-content { flex: 1; overflow-y: auto; }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: #64748b;
+      letter-spacing: 0.5px;
+      padding: 14px 16px 6px 16px;
+      text-transform: uppercase;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 16px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .nav-item:hover { background: #f1f5f9; }
+
+    .nav-item.active {
+      background: #f0fdf4;
+      border-left: 4px solid #045d4d;
+    }
+
+    .icon-circle {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #e2e8f0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .item-text h4 { font-size: 14px; font-weight: 700; color: #0f172a; line-height: 1.2; }
+    .item-text p { font-size: 12px; color: #64748b; margin-top: 2px; }
+
+    .chat-pane { flex: 1; display: flex; flex-direction: column; background: #efeae2; min-width: 0; }
+
+    .chat-header {
+      background: #045d4d;
+      color: white;
+      padding: 14px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .chat-header-left { display: flex; align-items: center; gap: 12px; }
+
+    .btn-toggle-sidebar {
+      background: #11816e;
+      border: 1px solid #20a38d;
+      color: white;
+      font-size: 18px;
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: background 0.2s;
+    }
+    .btn-toggle-sidebar:hover { background: #03483c; }
+
+    .chat-header h3 { font-size: 18px; font-weight: 700; }
+    .chat-header p { font-size: 12px; color: #e2e8f0; margin-top: 1px; }
+
+    .chat-actions { display: flex; gap: 12px; }
+    .action-icon { background: none; border: none; color: white; font-size: 18px; cursor: pointer; }
+
+    .chat-messages {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background-image: radial-gradient(#cbd5e1 1px, transparent 0);
+      background-size: 12px 12px;
+    }
+
+    .message { display: flex; align-items: flex-end; gap: 8px; max-width: 75%; }
+    .message.my-msg { align-self: flex-end; flex-direction: row-reverse; }
+    .message img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
+
+    .msg-content {
+      background: white;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #0f172a;
+      box-shadow: 0 1px 1px rgba(0,0,0,0.08);
+    }
+
+    .message.my-msg .msg-content { background: #d9fdd3; }
+    .msg-author { font-size: 11px; font-weight: 700; color: #045d4d; margin-bottom: 2px; display: block; }
+
+    .chat-input-bar {
+      padding: 12px 16px;
+      background: #f0f2f5;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .chat-input-bar input {
+      flex: 1;
+      padding: 10px 16px;
+      border: 1px solid #cbd5e1;
+      border-radius: 20px;
+      outline: none;
+      font-size: 14px;
+    }
+
+    .btn-send, .btn-mic {
+      background: #045d4d;
+      color: white;
+      border: none;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 15px;
+    }
+
+    /* PROFILE MODAL */
+    .profile-modal {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 320px;
+      height: 100%;
+      background: #ffffff;
+      z-index: 100;
+      box-shadow: 4px 0 15px rgba(0,0,0,0.15);
+      display: flex;
+      flex-direction: column;
+      transform: translateX(-100%);
+      transition: transform 0.3s ease;
+    }
+
+    .profile-modal.open { transform: translateX(0); }
+
+    .profile-header {
+      background: #045d4d;
+      color: white;
+      padding: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .profile-body { padding: 20px; text-align: center; }
+
+    .profile-body img {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid #045d4d;
+      margin-bottom: 12px;
+    }
+
+    .badge {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 4px 10px;
+      background: #e0f2fe;
+      color: #0369a1;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 12px;
+    }
+
+    .btn-profile-search {
+      width: 100%;
+      margin-top: 20px;
+      background: #045d4d;
+      color: white;
+      border: none;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-profile-search:hover { background: #03483c; }
+
+    /* SEARCH USERS MODAL OVERLAY */
+    .user-search-modal {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 150;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .user-search-modal.hidden { display: none; }
+
+    .search-card {
+      background: white;
+      width: 100%;
+      max-width: 440px;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    }
+
+    .search-card-header {
+      background: #045d4d;
+      color: white;
+      padding: 14px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .search-card-body { padding: 16px; }
+
+    .search-card-input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid #cbd5e1;
+      border-radius: 20px;
+      font-size: 14px;
+      outline: none;
+      margin-bottom: 12px;
+    }
+
+    .search-card-results {
+      max-height: 250px;
+      overflow-y: auto;
+    }
+
+    .search-results-overlay {
+      background: #ffffff;
+      max-height: 200px;
+      overflow-y: auto;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .search-item {
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    .search-item:hover { background: #f8fafc; }
+
+    .search-item img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
+
+    .call-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(11,20,26,0.95); display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; z-index: 200; }
+    .call-overlay.hidden { display: none; }
+    .video-container { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; justify-content: center; }
+    video { width: 220px; height: 160px; background: black; border-radius: 8px; object-fit: cover; }
+    .btn-end { background: #dc3545; padding: 10px 20px; border: none; color: white; border-radius: 20px; cursor: pointer; font-weight: bold; }
+
+    /* MOBILE RESPONSIVENESS */
+    @media (max-width: 640px) {
+      .sidebar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        box-shadow: 4px 0 15px rgba(0,0,0,0.2);
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- COLLAPSIBLE SIDEBAR PANEL -->
+    <div class="sidebar" id="appSidebar">
+      <div class="sidebar-header">
+        <div>
+          <h2>Community</h2>
+          <h2>Portal</h2>
+        </div>
+        <button class="profile-btn" id="openProfileBtn">Profile</button>
+      </div>
+
+      <div class="search-container">
+        <div class="search-box">
+          <span>🔍</span>
+          <input type="text" id="memberSearchInput" placeholder="Search member">
+        </div>
+      </div>
+
+      <div class="search-results-overlay" id="searchResultsOverlay"></div>
+
+      <div class="sidebar-content">
+        <div id="adminTabContainer" style="display: none;">
+          <div class="section-title">ADMINISTRATION</div>
+          <div class="nav-item" id="btnAdminPortal">
+            <div class="icon-circle" style="background: #fef2f2; color: #dc2626;">🛡️</div>
+            <div class="item-text">
+              <h4>Admin Portal</h4>
+              <p>Manage Applications & Users</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-title">GROUP ROOMS</div>
+        
+        <!-- GENERAL GROUP CHAT FOR ALL USERS -->
+        <div class="nav-item active" id="btnGeneralChat">
+          <div class="icon-circle" style="background: #e0f2fe; color: #0284c7;">🌐</div>
+          <div class="item-text">
+            <h4>General Group Chat</h4>
+            <p>All Registered Members</p>
+          </div>
+        </div>
+
+        <!-- COMMUNITY SPECIFIC GROUP CHAT -->
+        <div class="nav-item" id="btnClanChat">
+          <div class="icon-circle" style="background: #fef3c7; color: #d97706;">🏡</div>
+          <div class="item-text">
+            <h4>My Community Chat</h4>
+            <p id="myClanLabel">Village Group</p>
+          </div>
+        </div>
+
+        <div class="section-title">DIRECT MESSAGES</div>
+        <div id="directMessagesList"></div>
+      </div>
+    </div>
+
+    <!-- MAIN CHAT PANE -->
+    <div class="chat-pane">
+      <div class="chat-header">
+        <div class="chat-header-left">
+          <!-- COLLAPSE SIDEBAR TOGGLE BUTTON -->
+          <button class="btn-toggle-sidebar" id="toggleSidebarBtn" title="Toggle Navigation Panel">☰</button>
+          <div>
+            <h3 id="activeRoomTitle">General Group Chat</h3>
+            <p id="activeRoomSubtitle">All Registered Members Room</p>
+          </div>
+        </div>
+        <div class="chat-actions">
+          <button class="action-icon" id="audioCallBtn" title="Voice Call">📞</button>
+          <button class="action-icon" id="videoCallBtn" title="Video Call">📹</button>
+          <button class="action-icon" id="logoutBtn" title="Logout">🚪</button>
+        </div>
+      </div>
+
+      <div class="chat-messages" id="messageList"></div>
+
+      <form class="chat-input-bar" id="chatForm">
+        <input type="text" id="messageInput" placeholder="Type a message..." autocomplete="off">
+        <button type="button" class="btn-mic" id="micBtn" title="Record Voice Note">🎙️</button>
+        <button type="submit" class="btn-send" id="sendBtn" title="Send">➤</button>
+      </form>
+    </div>
+
+    <!-- USER PROFILE MODAL -->
+    <div class="profile-modal" id="profileModal">
+      <div class="profile-header">
+        <h3>User Profile</h3>
+        <button class="action-icon" id="closeProfileBtn">❌</button>
+      </div>
+      <div class="profile-body">
+        <img id="profileAvatar" src="" alt="Avatar">
+        <h3 id="profileFullName"></h3>
+        <p id="profileNativeName"></p>
+        <div id="profileCommunityBadge" class="badge"></div>
+
+        <button class="btn-profile-search" id="openProfileSearchBtn">
+          🔍 Search Registered Users
+        </button>
+      </div>
+    </div>
+
+    <!-- DEDICATED USER SEARCH MODAL -->
+    <div class="user-search-modal hidden" id="userSearchModal">
+      <div class="search-card">
+        <div class="search-card-header">
+          <h3>Search Community Directory</h3>
+          <button class="action-icon" id="closeUserSearchBtn">❌</button>
+        </div>
+        <div class="search-card-body">
+          <input type="text" class="search-card-input" id="profileSearchModalInput" placeholder="Search by name or @username...">
+          <div class="search-card-results" id="profileSearchModalResults"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- WEBRTC CALL OVERLAY -->
+    <div class="call-overlay hidden" id="callOverlay">
+      <h2 id="callTitle">Call Active</h2>
+      <div class="video-container">
+        <video id="localVideo" autoplay playsinline muted></video>
+        <video id="remoteVideo" autoplay playsinline></video>
+      </div>
+      <div style="margin-top: 15px;">
+        <button class="btn-end" id="endCallBtn">End Call</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, push, onValue, set, off, onChildAdded } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+    import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const storage = getStorage(app);
+
+    const currentUser = JSON.parse(sessionStorage.getItem('loggedInUser'));
+    if (!currentUser) {
+      window.location.href = 'login.html';
+    }
+
+    // TOGGLE SIDEBAR COLLAPSE LOGIC
+    const appSidebar = document.getElementById('appSidebar');
+    const toggleSidebarBtn = document.getElementById('toggleSidebarBtn');
+
+    toggleSidebarBtn.addEventListener('click', () => {
+      appSidebar.classList.toggle('collapsed');
+    });
+
+    document.getElementById('profileAvatar').src = currentUser.passportUrl || '';
+    document.getElementById('profileFullName').textContent = currentUser.fullName || 'User';
+    document.getElementById('profileNativeName').textContent = `@${currentUser.nativeName || 'username'}`;
+    document.getElementById('profileCommunityBadge').textContent = currentUser.community || 'General';
+    document.getElementById('myClanLabel').textContent = `${currentUser.community || 'Community'} Clan`;
+
+    let isRestricted = false;
+    let activeChannelKey = 'General_Group_Chat';
+    let currentChatListener = null;
+    let currentCallListener = null;
+    let allRegisteredUsers = {};
+    let activeDMs = new Map();
+
+    const profileModal = document.getElementById('profileModal');
+    document.getElementById('openProfileBtn').addEventListener('click', () => profileModal.classList.add('open'));
+    document.getElementById('closeProfileBtn').addEventListener('click', () => profileModal.classList.remove('open'));
+
+    // PROFILE SEARCH MODAL CONTROLS
+    const userSearchModal = document.getElementById('userSearchModal');
+    const openProfileSearchBtn = document.getElementById('openProfileSearchBtn');
+    const closeUserSearchBtn = document.getElementById('closeUserSearchBtn');
+    const profileSearchModalInput = document.getElementById('profileSearchModalInput');
+    const profileSearchModalResults = document.getElementById('profileSearchModalResults');
+
+    openProfileSearchBtn.addEventListener('click', () => {
+      profileModal.classList.remove('open');
+      userSearchModal.classList.remove('hidden');
+      profileSearchModalInput.focus();
+    });
+
+    closeUserSearchBtn.addEventListener('click', () => {
+      userSearchModal.classList.add('hidden');
+      profileSearchModalInput.value = '';
+      profileSearchModalResults.innerHTML = '';
+    });
+
+    profileSearchModalInput.addEventListener('input', (e) => {
+      const query = e.target.value.toLowerCase().trim();
+      profileSearchModalResults.innerHTML = '';
+      if (!query) return;
+
+      for (let nativeName in allRegisteredUsers) {
+        const user = allRegisteredUsers[nativeName];
+        if (user.nativeName === currentUser.nativeName || user.status !== 'active') continue;
+
+        if ((user.fullName && user.fullName.toLowerCase().includes(query)) || 
+            (user.nativeName && user.nativeName.toLowerCase().includes(query))) {
+          const item = document.createElement('div');
+          item.className = 'search-item';
+          item.innerHTML = `
+            <img src="${user.passportUrl}">
+            <div>
+              <h4 style="font-size: 13px; color: #0f172a;">${user.fullName}</h4>
+              <small style="color: #64748b;">@${user.nativeName} (${user.community})</small>
+            </div>
+          `;
+          item.onclick = () => {
+            userSearchModal.classList.add('hidden');
+            profileSearchModalInput.value = '';
+            profileSearchModalResults.innerHTML = '';
+            startDirectMessage(user);
+          };
+          profileSearchModalResults.appendChild(item);
+        }
+      }
+    });
+
+    if (currentUser.role === 'admin') {
+      const adminContainer = document.getElementById('adminTabContainer');
+      adminContainer.style.display = 'block';
+      document.getElementById('btnAdminPortal').addEventListener('click', () => {
+        window.location.href = 'admin.html';
+      });
+    }
+
+    onValue(ref(db, `users/${currentUser.nativeName}`), (snapshot) => {
+      if (snapshot.exists()) {
+        const userData = snapshot.val();
+        isRestricted = userData.status === 'restricted';
+
+        const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const micBtn = document.getElementById('micBtn');
+
+        if (isRestricted) {
+          messageInput.disabled = true;
+          sendBtn.disabled = true;
+          micBtn.disabled = true;
+          messageInput.placeholder = "You are restricted for violating guidelines.";
+          if (peerConnection) endCall();
+        } else {
+          messageInput.disabled = false;
+          sendBtn.disabled = false;
+          micBtn.disabled = false;
+          messageInput.placeholder = "Type a message...";
+        }
+      }
+    });
+
+    const btnGeneral = document.getElementById('btnGeneralChat');
+    const btnClan = document.getElementById('btnClanChat');
+
+    // General Group Chat (All Registered Users)
+    btnGeneral.addEventListener('click', () => {
+      updateActiveNav(btnGeneral);
+      switchRoom('General_Group_Chat', 'General Group Chat', 'All Registered Members');
+    });
+
+    // Community Group Chat (Only Specific Clan)
+    btnClan.addEventListener('click', () => {
+      updateActiveNav(btnClan);
+      const clanKey = `Community_${(currentUser.community || 'Clan').replace(/\s+/g, '_')}`;
+      switchRoom(clanKey, `${currentUser.community} Clan Chat`, `${currentUser.community} Community Room`);
+    });
+
+    function updateActiveNav(activeElement) {
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+      if (activeElement) activeElement.classList.add('active');
+    }
+
+    function switchRoom(key, title, subtitle) {
+      activeChannelKey = key;
+      document.getElementById('activeRoomTitle').textContent = title;
+      document.getElementById('activeRoomSubtitle').textContent = subtitle;
+      listenToMessages();
+      listenToCalls();
+    }
+
+    // Sidebar Search Input
+    const searchInput = document.getElementById('memberSearchInput');
+    const searchResults = document.getElementById('searchResultsOverlay');
+
+    onValue(ref(db, 'users'), (snapshot) => {
+      if (snapshot.exists()) {
+        allRegisteredUsers = snapshot.val();
+      }
+    });
+
+    searchInput.addEventListener('input', (e) => {
+      const query = e.target.value.toLowerCase().trim();
+      searchResults.innerHTML = '';
+      if (!query) return;
+
+      for (let nativeName in allRegisteredUsers) {
+        const user = allRegisteredUsers[nativeName];
+        if (user.nativeName === currentUser.nativeName || user.status !== 'active') continue;
+
+        if ((user.fullName && user.fullName.toLowerCase().includes(query)) || 
+            (user.nativeName && user.nativeName.toLowerCase().includes(query))) {
+          const item = document.createElement('div');
+          item.className = 'search-item';
+          item.innerHTML = `
+            <img src="${user.passportUrl}">
+            <div>
+              <h4 style="font-size: 13px; color: #0f172a;">${user.fullName}</h4>
+              <small style="color: #64748b;">@${user.nativeName}</small>
+            </div>
+          `;
+          item.onclick = () => startDirectMessage(user);
+          searchResults.appendChild(item);
+        }
+      }
+    });
+
+    function startDirectMessage(targetUser) {
+      searchResults.innerHTML = '';
+      searchInput.value = '';
+
+      const dmRoomId = [currentUser.nativeName, targetUser.nativeName].sort().join('_DM_');
+      const channelKey = `DM_${dmRoomId}`;
+
+      if (!activeDMs.has(channelKey)) {
+        activeDMs.set(channelKey, targetUser);
+        renderDirectMessagesList();
+      }
+
+      switchRoom(channelKey, targetUser.fullName, `@${targetUser.nativeName} (${targetUser.community})`);
+      updateActiveNav(document.getElementById(`dm-${channelKey}`));
+    }
+
+    function renderDirectMessagesList() {
+      const dmContainer = document.getElementById('directMessagesList');
+      dmContainer.innerHTML = '';
+
+      activeDMs.forEach((user, key) => {
+        const dmItem = document.createElement('div');
+        dmItem.className = 'nav-item';
+        dmItem.id = `dm-${key}`;
+        dmItem.innerHTML = `
+          <img src="${user.passportUrl}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover;">
+          <div class="item-text">
+            <h4>${user.fullName}</h4>
+            <p>@${user.nativeName}</p>
+          </div>
+        `;
+        dmItem.onclick = () => {
+          updateActiveNav(dmItem);
+          switchRoom(key, user.fullName, `@${user.nativeName} (${user.community})`);
+        };
+        dmContainer.appendChild(dmItem);
+      });
+    }
+
+    // Message Listener
+    function listenToMessages() {
+      if (currentChatListener) off(currentChatListener);
+
+      currentChatListener = ref(db, `chats/${activeChannelKey}`);
+      onValue(currentChatListener, (snapshot) => {
+        const messageList = document.getElementById('messageList');
+        messageList.innerHTML = '';
+
+        if (snapshot.exists()) {
+          const messages = snapshot.val();
+          for (let id in messages) {
+            const msg = messages[id];
+            const isMe = msg.nativeName === currentUser.nativeName;
+
+            const msgElement = document.createElement('div');
+            msgElement.className = `message ${isMe ? 'my-msg' : ''}`;
+
+            let contentHtml = msg.text ? `<div class="msg-content">${msg.text}</div>` : '';
+            if (msg.audioUrl) {
+              contentHtml = `<div class="msg-content"><audio src="${msg.audioUrl}" controls></audio></div>`;
+            }
+
+            msgElement.innerHTML = `
+              <img src="${msg.passportUrl}" alt="Avatar">
+              <div>
+                <span class="msg-author">${isMe ? 'You' : '@' + msg.nativeName + ' (' + (msg.community || '') + ')'}</span>
+                ${contentHtml}
+              </div>
+            `;
+            messageList.appendChild(msgElement);
+          }
+          messageList.scrollTop = messageList.scrollHeight;
+        }
+      });
+    }
+
+    listenToMessages();
+
+    // Text Message Handler
+    document.getElementById('chatForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (isRestricted) return alert("You are currently restricted from messaging.");
+
+      const input = document.getElementById('messageInput');
+      if (input.value.trim()) {
+        await push(ref(db, `chats/${activeChannelKey}`), {
+          nativeName: currentUser.nativeName,
+          community: currentUser.community,
+          passportUrl: currentUser.passportUrl,
+          text: input.value.trim(),
+          timestamp: Date.now()
+        });
+        input.value = '';
+      }
+    });
+
+    // Voice Notes Handler
+    let mediaRecorder;
+    let audioChunks = [];
+    let isRecording = false;
+    const micBtn = document.getElementById('micBtn');
+
+    micBtn.addEventListener('click', async () => {
+      if (isRestricted) return alert("You are currently restricted from sending voice notes.");
+
+      if (!isRecording) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/ogg';
+          mediaRecorder = new MediaRecorder(stream, { mimeType });
+          audioChunks = [];
+
+          mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+          mediaRecorder.onstop = async () => {
+            const audioBlob = new Blob(audioChunks, { type: mimeType });
+            const extension = mimeType.includes('webm') ? 'webm' : 'ogg';
+            const fileRef = storageRef(storage, `voice_notes/${Date.now()}.${extension}`);
+            await uploadBytes(fileRef, audioBlob);
+            const audioUrl = await getDownloadURL(fileRef);
+
+            await push(ref(db, `chats/${activeChannelKey}`), {
+              nativeName: currentUser.nativeName,
+              community: currentUser.community,
+              passportUrl: currentUser.passportUrl,
+              audioUrl: audioUrl,
+              timestamp: Date.now()
+            });
+
+            stream.getTracks().forEach(track => track.stop());
+          };
+
+          mediaRecorder.start();
+          isRecording = true;
+          micBtn.style.background = '#dc3545';
+        } catch (err) {
+          alert('Microphone permission required.');
+        }
+      } else {
+        mediaRecorder.stop();
+        isRecording = false;
+        micBtn.style.background = '#045d4d';
+      }
+    });
+
+    // WebRTC Calls Engine
+    let localStream = null;
+    let peerConnection = null;
+    const callOverlay = document.getElementById('callOverlay');
+    const rtcConfig = { 
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' }
+      ] 
+    };
+
+    document.getElementById('audioCallBtn').addEventListener('click', () => startCall('audio'));
+    document.getElementById('videoCallBtn').addEventListener('click', () => startCall('video'));
+    document.getElementById('endCallBtn').addEventListener('click', () => endCall());
+
+    async function startCall(type) {
+      if (isRestricted) return alert("You are restricted from starting calls.");
+
+      callOverlay.classList.remove('hidden');
+      document.getElementById('callTitle').textContent = `${type.toUpperCase()} Call Active`;
+
+      try {
+        localStream = await navigator.mediaDevices.getUserMedia({ video: type === 'video', audio: true });
+        document.getElementById('localVideo').srcObject = localStream;
+
+        peerConnection = new RTCPeerConnection(rtcConfig);
+        localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+        peerConnection.ontrack = e => {
+          document.getElementById('remoteVideo').srcObject = e.streams[0];
+        };
+
+        const callerCandidatesRef = ref(db, `calls/${activeChannelKey}/callerCandidates`);
+        peerConnection.onicecandidate = e => {
+          if (e.candidate) push(callerCandidatesRef, e.candidate.toJSON());
+        };
+
+        const offer = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offer);
+
+        await set(ref(db, `calls/${activeChannelKey}`), {
+          offer: { type: offer.type, sdp: offer.sdp },
+          sender: currentUser.nativeName,
+          callType: type
+        });
+
+        onValue(ref(db, `calls/${activeChannelKey}/answer`), async (snapshot) => {
+          if (snapshot.exists() && peerConnection && !peerConnection.currentRemoteDescription) {
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(snapshot.val()));
+          }
+        });
+
+        onChildAdded(ref(db, `calls/${activeChannelKey}/calleeCandidates`), (snapshot) => {
+          if (snapshot.exists() && peerConnection) {
+            peerConnection.addIceCandidate(new RTCIceCandidate(snapshot.val()));
+          }
+        });
+
+      } catch (err) {
+        alert("Failed to access camera/mic: " + err.message);
+        endCall();
+      }
+    }
+
+    function listenToCalls() {
+      if (currentCallListener) off(currentCallListener);
+
+      currentCallListener = ref(db, `calls/${activeChannelKey}`);
+      onValue(currentCallListener, async (snapshot) => {
+        if (!snapshot.exists()) {
+          if (peerConnection) endCall(false);
+          return;
+        }
+
+        const callData = snapshot.val();
+        if (callData.sender !== currentUser.nativeName && callData.offer && !peerConnection) {
+          if (isRestricted) return;
+
+          const accept = confirm(`Incoming ${callData.callType || 'voice'} call from @${callData.sender}. Accept?`);
+          if (accept) {
+            callOverlay.classList.remove('hidden');
+            document.getElementById('callTitle').textContent = `${(callData.callType || 'audio').toUpperCase()} Call Active`;
+
+            try {
+              localStream = await navigator.mediaDevices.getUserMedia({ video: callData.callType === 'video', audio: true });
+              document.getElementById('localVideo').srcObject = localStream;
+
+              peerConnection = new RTCPeerConnection(rtcConfig);
+              localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+              peerConnection.ontrack = e => {
+                document.getElementById('remoteVideo').srcObject = e.streams[0];
+              };
+
+              const calleeCandidatesRef = ref(db, `calls/${activeChannelKey}/calleeCandidates`);
+              peerConnection.onicecandidate = e => {
+                if (e.candidate) push(calleeCandidatesRef, e.candidate.toJSON());
+              };
+
+              await peerConnection.setRemoteDescription(new RTCSessionDescription(callData.offer));
+              const answer = await peerConnection.createAnswer();
+              await peerConnection.setLocalDescription(answer);
+
+              await set(ref(db, `calls/${activeChannelKey}/answer`), { type: answer.type, sdp: answer.sdp });
+
+              onChildAdded(ref(db, `calls/${activeChannelKey}/callerCandidates`), (snapshot) => {
+                if (snapshot.exists() && peerConnection) {
+                  peerConnection.addIceCandidate(new RTCIceCandidate(snapshot.val()));
+                }
+              });
+
+            } catch (err) {
+              alert("Error accepting call: " + err.message);
+              endCall();
+            }
+          }
+        }
+      });
+    }
+
+    listenToCalls();
+
+    function endCall(cleanDatabase = true) {
+      if (peerConnection) {
+        peerConnection.close();
+        peerConnection = null;
+      }
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+        localStream = null;
+      }
+      if (cleanDatabase) {
+        set(ref(db, `calls/${activeChannelKey}`), null);
+      }
+      callOverlay.classList.add('hidden');
+      document.getElementById('localVideo').srcObject = null;
+      document.getElementById('remoteVideo').srcObject = null;
+    }
+
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      sessionStorage.removeItem('loggedInUser');
+      window.location.href = 'login.html';
+    });
+  </script>
+</body>
+</html>

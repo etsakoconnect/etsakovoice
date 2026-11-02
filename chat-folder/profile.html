@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>User Profile</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f3f4f6; padding: 20px; }
+    .profile-card { max-width: 500px; margin: 40px auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; }
+    .avatar { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; margin-bottom: 15px; }
+    .status-badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 12px; text-transform: uppercase; margin-bottom: 15px; }
+    .status-pending { background: #fef08a; color: #854d0e; }
+    .status-approved { background: #bbf7d0; color: #166534; }
+    .info-list { text-align: left; margin-top: 20px; font-size: 14px; }
+    .info-list p { margin: 8px 0; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px; }
+    .btn { display: inline-block; padding: 10px 20px; background: #075e54; color: white; border: none; border-radius: 6px; cursor: pointer; text-decoration: none; font-weight: bold; margin-top: 15px; }
+  </style>
+</head>
+<body>
+
+  <div class="profile-card">
+    <img id="profileImage" src="https://via.placeholder.com/100" class="avatar" alt="Profile">
+    <h2 id="profileName">Loading...</h2>
+    <div id="statusBadge" class="status-badge">Status</div>
+
+    <div class="info-list">
+      <p><strong>Email:</strong> <span id="profileEmail"></span></p>
+      <p><strong>Phone:</strong> <span id="profilePhone"></span></p>
+      <p><strong>Community:</strong> <span id="profileVillage"></span></p>
+      <p><strong>Role:</strong> <span id="profileRole"></span></p>
+    </div>
+
+    <a id="chatLink" href="chat.html" class="btn" style="display:none;">Proceed to Chat</a>
+    <button id="logoutBtn" class="btn" style="background:#dc2626;">Logout</button>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_KEY"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const database = getDatabase(app);
+    const auth = getAuth(app);
+
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        window.location.href = "login.html";
+        return;
+      }
+
+      const userRef = ref(database, 'members/' + user.uid);
+      onValue(userRef, (snapshot) => {
+        const member = snapshot.val();
+        if (member) {
+          document.getElementById("profileName").innerText = member.fullName;
+          document.getElementById("profileEmail").innerText = member.email;
+          document.getElementById("profilePhone").innerText = member.phone;
+          document.getElementById("profileVillage").innerText = member.village;
+          document.getElementById("profileRole").innerText = member.role;
+          document.getElementById("profileImage").src = member.passport || "https://via.placeholder.com/100";
+
+          const badge = document.getElementById("statusBadge");
+          badge.innerText = member.status;
+
+          if (member.status === "approved") {
+            badge.className = "status-badge status-approved";
+            document.getElementById("chatLink").style.display = "inline-block";
+          } else {
+            badge.className = "status-badge status-pending";
+            document.getElementById("chatLink").style.display = "none";
+          }
+        }
+      });
+    });
+
+    document.getElementById("logoutBtn").addEventListener("click", () => {
+      signOut(auth).then(() => { window.location.href = "login.html"; });
+    });
+  </script>
+</body>
+</html>

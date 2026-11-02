@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Creator Notice Board</title>
+  <style>
+    * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background: #eef2f7; margin: 0; padding: 20px; }
+    .container { max-width: 800px; margin: 0 auto; }
+    
+    .header {
+      display: flex; justify-content: space-between; align-items: center;
+      background: #ffffff; padding: 20px 30px; border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 20px;
+    }
+    .header h1 { margin: 0; font-size: 24px; color: #333; }
+    .btn-create {
+      background-color: #667eea; color: #fff; padding: 10px 18px;
+      border-radius: 6px; text-decoration: none; font-weight: bold;
+    }
+    .btn-create:hover { background-color: #5a67d8; }
+    .nav-links a { color: #555; text-decoration: none; margin-left: 12px; font-size: 14px; }
+    
+    .filter-card {
+      background: #ffffff; padding: 18px 25px; border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06); margin-bottom: 25px;
+      display: flex; gap: 15px; flex-wrap: wrap;
+    }
+    .search-input {
+      flex: 2; min-width: 200px; padding: 10px 14px;
+      border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px;
+    }
+    .filter-select {
+      flex: 1; min-width: 150px; padding: 10px 14px;
+      border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px;
+      background-color: #fff; cursor: pointer;
+    }
+
+    .post-card {
+      background: #ffffff; padding: 25px; border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06); margin-bottom: 20px;
+    }
+    .post-author { font-size: 16px; font-weight: bold; color: #667eea; margin-bottom: 4px; }
+    .post-time { font-size: 12px; color: #888; margin-bottom: 12px; }
+    .post-title { font-size: 20px; color: #222; margin: 0 0 10px 0; }
+    .post-type-badge {
+      display: inline-block; background: #e2e8f0; color: #4a5568;
+      padding: 4px 10px; border-radius: 20px; font-size: 12px; margin-bottom: 12px;
+    }
+    .post-body { font-size: 15px; color: #444; line-height: 1.6; white-space: pre-wrap; }
+    .post-image { width: 100%; max-height: 400px; object-fit: cover; border-radius: 8px; margin-top: 15px; }
+    .pdf-link {
+      display: inline-block; margin-top: 15px; padding: 10px 16px;
+      background: #f1f5f9; color: #0f172a; border-radius: 6px;
+      text-decoration: none; font-weight: 600; border: 1px solid #cbd5e1;
+    }
+
+    .view-count-badge {
+      font-size: 12px; color: #64748b; font-weight: 600; margin-top: 10px; display: block;
+    }
+
+    .comments-section { margin-top: 18px; padding-top: 12px; border-top: 1px solid #e2e8f0; }
+    .comments-title { font-size: 14px; font-weight: bold; color: #475569; margin-bottom: 12px; }
+    .comment-list { margin-bottom: 15px; }
+    .comment-item {
+      background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;
+      padding: 10px 14px; margin-bottom: 8px; font-size: 13px;
+    }
+    .comment-author { font-weight: bold; color: #334155; }
+    .comment-text { color: #475569; margin-top: 4px; }
+    .comment-time { font-size: 11px; color: #94a3b8; float: right; }
+    .comment-form { display: flex; gap: 10px; margin-top: 10px; }
+    .comment-input { flex: 1; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; }
+    .comment-btn { background: #667eea; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="header">
+      <div>
+        <h1>Notice Board</h1>
+        <div class="nav-links">
+          <a href="profile.html">My Profile</a>
+          <a href="my-posts.html">My Personal Notice Board</a>
+        </div>
+      </div>
+      <a href="upload.html" class="btn-create">+ Create Post</a>
+    </div>
+
+    <div class="filter-card">
+      <input type="text" id="searchInput" class="search-input" placeholder="🔍 Search by Industry Name or Title...">
+      <select id="typeFilter" class="filter-select">
+        <option value="ALL">All Categories</option>
+        <option value="Text / Quick Note">Text / Quick Note</option>
+        <option value="Article">Article</option>
+        <option value="Announcement">Announcement</option>
+      </select>
+    </div>
+
+    <div id="feed-container">
+      <p style="text-align: center; color: #666;">Loading posts...</p>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc, collection, query, orderBy, getDocs, addDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    let allPosts = []; 
+    let currentCreatorName = "Anonymous Creator";
+
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const userDoc = await getDoc(doc(db, "creators", user.uid));
+        if (userDoc.exists() && userDoc.data().industryName) {
+          currentCreatorName = userDoc.data().industryName;
+        }
+      }
+    });
+
+    async function fetchPosts() {
+      try {
+        const q = query(collection(db, "notice_board"), orderBy("createdAt", "desc"));
+        const querySnapshot = await getDocs(q);
+
+        allPosts = [];
+        for (const docSnap of querySnapshot.docs) {
+          const postData = docSnap.data();
+          postData.id = docSnap.id;
+
+          updateDoc(doc(db, "notice_board", postData.id), {
+            views: increment(1)
+          }).catch(err => console.log("View count error:", err));
+
+          const commentsQ = query(collection(db, "notice_board", postData.id, "comments"), orderBy("createdAt", "asc"));
+          const commentsSnap = await getDocs(commentsQ);
+          postData.comments = commentsSnap.docs.map(c => c.data());
+
+          allPosts.push(postData);
+        }
+
+        renderPosts();
+      } catch (error) {
+        document.getElementById('feed-container').innerHTML = 
+          `<p style="color:red; text-align:center;">Error loading posts: ${error.message}</p>`;
+      }
+    }
+
+    function renderPosts() {
+      const feedContainer = document.getElementById('feed-container');
+      const searchQuery = document.getElementById('searchInput').value.toLowerCase().trim();
+      const selectedType = document.getElementById('typeFilter').value;
+
+      const filteredPosts = allPosts.filter(post => {
+        const matchesSearch = 
+          (post.industryName && post.industryName.toLowerCase().includes(searchQuery)) ||
+          (post.title && post.title.toLowerCase().includes(searchQuery));
+
+        const matchesType = (selectedType === 'ALL') || (post.contentType === selectedType);
+        return matchesSearch && matchesType;
+      });
+
+      if (filteredPosts.length === 0) {
+        feedContainer.innerHTML = `<p style="text-align:center; color:#666;">No posts matched your search criteria.</p>`;
+        return;
+      }
+
+      let html = '';
+      filteredPosts.forEach((post) => {
+        const postDate = new Date(post.createdAt).toLocaleString();
+
+        let mediaHTML = '';
+        if (post.fileUrl) {
+          if (post.fileType === 'pdf') {
+            mediaHTML = `<a href="${post.fileUrl}" target="_blank" class="pdf-link">📄 View attached PDF Document</a>`;
+          } else {
+            mediaHTML = `<img src="${post.fileUrl}" class="post-image" alt="Attachment">`;
+          }
+        }
+
+        let commentsHTML = '';
+        if (post.comments && post.comments.length > 0) {
+          post.comments.forEach(c => {
+            const commentTime = new Date(c.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            commentsHTML += `
+              <div class="comment-item">
+                <span class="comment-author">${c.industryName}</span>
+                <span class="comment-time">${commentTime}</span>
+                <div class="comment-text">${c.text}</div>
+              </div>
+            `;
+          });
+        } else {
+          commentsHTML = `<p style="font-size:12px; color:#888;">No comments yet.</p>`;
+        }
+
+        html += `
+          <div class="post-card">
+            <div class="post-author">📢 ${post.industryName || 'Anonymous Creator'}</div>
+            <div class="post-time">${postDate}</div>
+            <span class="post-type-badge">${post.contentType || 'Post'}</span>
+            <h3 class="post-title">${post.title}</h3>
+            <div class="post-body">${post.body}</div>
+            ${mediaHTML}
+
+            <span class="view-count-badge">👁️ ${ (post.views || 0) + 1 } Views</span>
+
+            <div class="comments-section">
+              <div class="comments-title">💬 Comments (${post.comments ? post.comments.length : 0})</div>
+              <div class="comment-list">${commentsHTML}</div>
+              <form class="comment-form" data-postid="${post.id}">
+                <input type="text" class="comment-input" placeholder="Write a comment..." required>
+                <button type="submit" class="comment-btn">Post</button>
+              </form>
+            </div>
+          </div>
+        `;
+      });
+
+      feedContainer.innerHTML = html;
+
+      document.querySelectorAll('.comment-form').forEach(form => {
+        form.addEventListener('submit', handleAddComment);
+      });
+    }
+
+    async function handleAddComment(e) {
+      e.preventDefault();
+      const form = e.target;
+      const postId = form.getAttribute('data-postid');
+      const input = form.querySelector('.comment-input');
+      const text = input.value.trim();
+
+      if (!text) return;
+
+      try {
+        await addDoc(collection(db, "notice_board", postId, "comments"), {
+          text: text,
+          industryName: currentCreatorName,
+          createdAt: new Date().toISOString()
+        });
+
+        input.value = '';
+        fetchPosts();
+      } catch (error) {
+        alert("Could not post comment: " + error.message);
+      }
+    }
+
+    document.getElementById('searchInput').addEventListener('input', renderPosts);
+    document.getElementById('typeFilter').addEventListener('change', renderPosts);
+
+    fetchPosts();
+  </script>
+</body>
+</html>

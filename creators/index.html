@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Creator Registration</title>
+  <style>
+    * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex; justify-content: center; align-items: center;
+      min-height: 100vh; margin: 0; padding: 20px;
+    }
+    .card {
+      background: #ffffff; padding: 35px 30px; border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15); width: 100%; max-width: 450px;
+    }
+    h2 { margin-top: 0; color: #333; text-align: center; }
+    .form-group { margin-bottom: 16px; }
+    label { display: block; margin-bottom: 6px; font-weight: 600; color: #444; font-size: 14px; }
+    input[type="text"], input[type="email"], input[type="password"], input[type="tel"], input[type="file"] {
+      width: 100%; padding: 10px 12px; border: 1px solid #ccc;
+      border-radius: 6px; font-size: 14px;
+    }
+    button {
+      width: 100%; padding: 12px; background-color: #667eea;
+      color: #ffffff; border: none; border-radius: 6px;
+      font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px;
+    }
+    button:hover { background-color: #5a67d8; }
+    .links { text-align: center; margin-top: 18px; font-size: 14px; }
+    .links a { color: #667eea; text-decoration: none; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h2>Creator Registration</h2>
+    <form id="register-form">
+      <div class="form-group">
+        <label for="industryName">Industry Name (Stage / Business Name) *</label>
+        <input type="text" id="industryName" placeholder="e.g. Acme Media Studios" required>
+      </div>
+      <div class="form-group">
+        <label for="email">Email Address *</label>
+        <input type="email" id="email" placeholder="creator@domain.com" required>
+      </div>
+      <div class="form-group">
+        <label for="phone">Phone Number *</label>
+        <input type="tel" id="phone" placeholder="+1234567890" required>
+      </div>
+      <div class="form-group">
+        <label for="password">Password *</label>
+        <input type="password" id="password" placeholder="At least 6 characters" required minlength="6">
+      </div>
+      <div class="form-group">
+        <label for="passport">Passport Photo (Optional)</label>
+        <input type="file" id="passport" accept="image/*">
+      </div>
+      <button type="submit" id="submit-btn">Register Creator Account</button>
+    </form>
+
+    <div class="links">
+      Already registered? <a href="login.html">Login here</a>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const storage = getStorage(app);
+
+    document.getElementById('register-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('submit-btn');
+      btn.innerText = "Creating Account...";
+      btn.disabled = true;
+
+      const industryName = document.getElementById('industryName').value;
+      const email = document.getElementById('email').value;
+      const phone = document.getElementById('phone').value;
+      const password = document.getElementById('password').value;
+      const passportFile = document.getElementById('passport').files[0];
+
+      try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        let passportUrl = "";
+        if (passportFile) {
+          const storageRef = ref(storage, `passports/${user.uid}/${passportFile.name}`);
+          await uploadBytes(storageRef, passportFile);
+          passportUrl = await getDownloadURL(storageRef);
+        }
+
+        await setDoc(doc(db, "creators", user.uid), {
+          uid: user.uid,
+          industryName: industryName,
+          email: email,
+          phone: phone,
+          passportUrl: passportUrl,
+          createdAt: new Date().toISOString()
+        });
+
+        alert("Registration Successful!");
+        window.location.href = "profile.html";
+      } catch (error) {
+        alert("Error: " + error.message);
+      } finally {
+        btn.innerText = "Register Creator Account";
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Global Community - Register</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Helvetica, Arial, sans-serif; }
+    body { background-color: #d1d7db; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+    
+    .register-card {
+      background: #ffffff;
+      width: 100%;
+      max-width: 480px;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    }
+
+    .header { text-align: center; margin-bottom: 24px; }
+    .header h1 { font-size: 24px; color: #045d4d; font-weight: 700; }
+    .header p { font-size: 13px; color: #64748b; margin-top: 4px; }
+
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px; text-transform: uppercase; }
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+    }
+    .form-group input:focus, .form-group select:focus { border-color: #045d4d; }
+
+    .btn-submit {
+      width: 100%;
+      background: #045d4d;
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    .btn-submit:hover { background: #03483c; }
+
+    .footer-link { text-align: center; margin-top: 18px; font-size: 13px; color: #64748b; }
+    .footer-link a { color: #045d4d; text-decoration: none; font-weight: 700; }
+  </style>
+</head>
+<body>
+
+  <div class="register-card">
+    <div class="header">
+      <h1>Create Account</h1>
+      <p>Join the global community platform</p>
+    </div>
+
+    <form id="registerForm">
+      <div class="form-group">
+        <label for="fullName">Full Name</label>
+        <input type="text" id="fullName" placeholder="e.g. John Doe" required>
+      </div>
+
+      <div class="form-group">
+        <label for="nativeName">Username / Handle</label>
+        <input type="text" id="nativeName" placeholder="e.g. johndoe" required>
+      </div>
+
+      <div class="form-group">
+        <label for="community">Community Clan</label>
+        <select id="community" required>
+          <option value="" disabled selected>Select your clan</option>
+          <option value="Uzairue">Uzairue Clan</option>
+          <option value="Auchi">Auchi Clan</option>
+          <option value="Agbede">Agbede Clan</option>
+          <option value="Avianwu">Avianwu Clan</option>
+          <option value="Weppa Wanno">Weppa Wanno Clan</option>
+          <option value="South Ibie">South Ibie Clan</option>
+          <option value="Okpella">Okpella Clan</option>
+          <option value="Ekperi">Ekperi Clan</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" placeholder="••••••••" required>
+      </div>
+
+      <div class="form-group">
+        <label for="passport">Passport Photo</label>
+        <input type="file" id="passport" accept="image/*" required>
+      </div>
+
+      <button type="submit" class="btn-submit" id="submitBtn">Register Account</button>
+    </form>
+
+    <div class="footer-link">
+      Already have an account? <a href="login.html">Log In</a>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+    import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const storage = getStorage(app);
+
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const submitBtn = document.getElementById('submitBtn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Submitting Application...';
+
+      const fullName = document.getElementById('fullName').value.trim();
+      const nativeName = document.getElementById('nativeName').value.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+      const community = document.getElementById('community').value;
+      const password = document.getElementById('password').value;
+      const passportFile = document.getElementById('passport').files[0];
+
+      if (!nativeName) {
+        alert('Invalid username. Please use letters, numbers, or underscores.');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Register Account';
+        return;
+      }
+
+      try {
+        const userRef = ref(db, `users/${nativeName}`);
+        const snapshot = await get(userRef);
+
+        if (snapshot.exists()) {
+          alert('Username already taken. Please select another handle.');
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Register Account';
+          return;
+        }
+
+        const fileRef = storageRef(storage, `passports/${nativeName}_${Date.now()}`);
+        await uploadBytes(fileRef, passportFile);
+        const passportUrl = await getDownloadURL(fileRef);
+
+        const userData = {
+          fullName,
+          nativeName,
+          community,
+          password,
+          passportUrl,
+          role: 'user',
+          status: 'pending',
+          createdAt: Date.now()
+        };
+
+        await set(userRef, userData);
+
+        alert('Application submitted successfully! Your account is currently pending admin approval.');
+        window.location.href = 'login.html';
+
+      } catch (err) {
+        alert('Registration error: ' + err.message);
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Register Account';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - Management Portal</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Helvetica, Arial, sans-serif; }
+    body { background-color: #f1f5f9; min-height: 100vh; padding: 30px; }
+
+    .header-bar {
+      background: #045d4d;
+      color: white;
+      padding: 20px 30px;
+      border-radius: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .header-bar h1 { font-size: 22px; font-weight: 700; }
+
+    .btn-nav {
+      background: #ffffff;
+      color: #045d4d;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      text-decoration: none;
+      font-size: 13px;
+    }
+
+    .container { display: flex; gap: 24px; flex-wrap: wrap; }
+
+    .panel {
+      flex: 1;
+      min-width: 320px;
+      background: white;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #e2e8f0;
+    }
+
+    .panel-title { font-size: 16px; font-weight: bold; color: #0f172a; }
+
+    .admin-search-box {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .admin-search-box input {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .user-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .user-info { display: flex; align-items: center; gap: 12px; }
+    .user-info img { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; }
+    .user-info h4 { font-size: 14px; color: #0f172a; }
+    .user-info p { font-size: 12px; color: #64748b; }
+
+    .action-btns { display: flex; gap: 6px; }
+
+    .btn-action {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .btn-approve { background: #16a34a; color: white; }
+    .btn-reject { background: #dc2626; color: white; }
+    .btn-restrict { background: #d97706; color: white; }
+    .btn-unrestrict { background: #2563eb; color: white; }
+  </style>
+</head>
+<body>
+
+  <div class="header-bar">
+    <div>
+      <h1>🛡 Community Admin Dashboard</h1>
+      <p style="font-size: 12px; opacity: 0.9; margin-top: 2px;">Manage user approvals & enforce community guidelines</p>
+    </div>
+    <div style="display: flex; gap: 10px;">
+      <a href="chat.html" class="btn-nav">Open Chat</a>
+      <button class="btn-nav" id="logoutBtn" style="background: #ef4444; color: white;">Logout</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- PENDING APPLICATIONS PANEL -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Pending Applications</div>
+      </div>
+      <div id="pendingList">Loading...</div>
+    </div>
+
+    <!-- USER RESTRICTION & GUIDELINES PANEL -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">User Restrictions & Active Accounts</div>
+      </div>
+      <div class="admin-search-box">
+        <input type="text" id="adminUserSearch" placeholder="🔍 Search active users by name or @username...">
+      </div>
+      <div id="activeList">Loading...</div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    const currentUser = JSON.parse(sessionStorage.getItem('loggedInUser'));
+    if (!currentUser || currentUser.role !== 'admin') {
+      alert("Access denied. Admin privileges required.");
+      window.location.href = 'login.html';
+    }
+
+    let allUsersCache = {};
+
+    onValue(ref(db, 'users'), (snapshot) => {
+      if (snapshot.exists()) {
+        allUsersCache = snapshot.val();
+        renderAdminPanels();
+      }
+    });
+
+    document.getElementById('adminUserSearch').addEventListener('input', renderAdminPanels);
+
+    function renderAdminPanels() {
+      const pendingList = document.getElementById('pendingList');
+      const activeList = document.getElementById('activeList');
+      const searchQuery = document.getElementById('adminUserSearch').value.toLowerCase().trim();
+
+      pendingList.innerHTML = '';
+      activeList.innerHTML = '';
+
+      let pendingCount = 0;
+      let activeCount = 0;
+
+      for (let username in allUsersCache) {
+        const user = allUsersCache[username];
+
+        // Pending Applications
+        if (user.status === 'pending') {
+          pendingCount++;
+          const card = document.createElement('div');
+          card.className = 'user-card';
+          card.innerHTML = `
+            <div class="user-info">
+              <img src="${user.passportUrl}">
+              <div>
+                <h4>${user.fullName}</h4>
+                <p>@${user.nativeName} | ${user.community}</p>
+              </div>
+            </div>
+            <div class="action-btns">
+              <button class="btn-action btn-approve" id="approve-${user.nativeName}">Approve</button>
+              <button class="btn-action btn-reject" id="reject-${user.nativeName}">Reject</button>
+            </div>
+          `;
+          pendingList.appendChild(card);
+
+          setTimeout(() => {
+            document.getElementById(`approve-${user.nativeName}`)?.addEventListener('click', () => setStatus(user.nativeName, 'active'));
+            document.getElementById(`reject-${user.nativeName}`)?.addEventListener('click', () => setStatus(user.nativeName, 'rejected'));
+          }, 0);
+        }
+
+        // Active / Restricted Users
+        if (user.status === 'active' || user.status === 'restricted') {
+          const matchesSearch = !searchQuery || 
+            (user.fullName && user.fullName.toLowerCase().includes(searchQuery)) ||
+            (user.nativeName && user.nativeName.toLowerCase().includes(searchQuery));
+
+          if (matchesSearch) {
+            activeCount++;
+            const isRestricted = user.status === 'restricted';
+            const card = document.createElement('div');
+            card.className = 'user-card';
+            card.innerHTML = `
+              <div class="user-info">
+                <img src="${user.passportUrl}">
+                <div>
+                  <h4>${user.fullName} ${user.role === 'admin' ? '(Admin)' : ''}</h4>
+                  <p>@${user.nativeName} | Status: <b style="color: ${isRestricted ? '#d97706' : '#16a34a'}">${user.status.toUpperCase()}</b></p>
+                </div>
+              </div>
+              <div class="action-btns">
+                ${user.role !== 'admin' ? (
+                  isRestricted 
+                    ? `<button class="btn-action btn-unrestrict" id="unrestrict-${user.nativeName}">Lift Restriction</button>`
+                    : `<button class="btn-action btn-restrict" id="restrict-${user.nativeName}">Restrict User</button>`
+                ) : ''}
+              </div>
+            `;
+            activeList.appendChild(card);
+
+            setTimeout(() => {
+              if (isRestricted) {
+                document.getElementById(`unrestrict-${user.nativeName}`)?.addEventListener('click', () => setStatus(user.nativeName, 'active'));
+              } else if (user.role !== 'admin') {
+                document.getElementById(`restrict-${user.nativeName}`)?.addEventListener('click', () => setStatus(user.nativeName, 'restricted'));
+              }
+            }, 0);
+          }
+        }
+      }
+
+      if (pendingCount === 0) pendingList.innerHTML = '<p style="color:#64748b; font-size:13px;">No pending applications.</p>';
+      if (activeCount === 0) activeList.innerHTML = '<p style="color:#64748b; font-size:13px;">No matching users found.</p>';
+    }
+
+    async function setStatus(username, newStatus) {
+      await update(ref(db, `users/${username}`), { status: newStatus });
+    }
+
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      sessionStorage.removeItem('loggedInUser');
+      window.location.href = 'login.html';
+    });
+  </script>
+</body>
+</html>
